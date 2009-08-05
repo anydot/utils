@@ -1,0 +1,7 @@
+percentil.pl
+	data nacte ze std vstupu nebo ze souboru uvedenych jako parametry
+	format vstupu je takto: (\s je whitespace, + je opakovani 1..nekonecno, * libovolne opakovani)
+\s*$mnozstvi\s*$popisek
+
+	vystup: percentil v poradi jake bylo na vstupu, ke kazde popisce je vypsan jak percentil, 
+		tak i delka daneho useku

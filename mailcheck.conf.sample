@@ -1,0 +1,6 @@
+mail => '/home/user/Mail',
+flaggedall => 0,
+mbox => {
+	'mailbox1'    => 'short-cut',
+	'firm.inbox'  => 'f.i',
+}
