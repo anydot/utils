@@ -1,0 +1,7 @@
+## defaults
+
+MAILDIR=~/Mail
+SPAMDIRS=spam
+HAMDIRS=inbox
+CHECKDIRS=inbox
+DSTSPAM=spam
