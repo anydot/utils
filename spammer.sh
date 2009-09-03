@@ -15,7 +15,8 @@ LEARNSTAMP="$MAILDIR/.spammer.learnstamp"
 
 check() {
 	for dir in $CHECKDIRS ; do
-		for m in `ls -A $MAILDIR/$dir/new/` ; do
+		[ -z "`ls -A $MAILDIR/$dir/new`" ] && continue
+		for m in $MAILDIR/$dir/new/* ; do
 			[ $CHECKSTAMP -nt $m ] && continue
 			bogofilter < $m && mv $m $MAILDIR/$DSTSPAM/new
 		done
