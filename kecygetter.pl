@@ -57,6 +57,10 @@ sub set_cache {
 	return set_file("cache", @_);
 }
 
+sub verify_urls {
+	return grep {(head $_)[0] =~ /^image\//} @_;
+}
+
 if (! -d $cachedir) {
 	mkdir $cachedir
 		or die ("$cachedir doesn't exists and I can't create one");
@@ -73,7 +77,7 @@ push @prefetched, @fetched_new;
 if (@ARGV == 1 && $ARGV[0] eq '-update') {
 }
 elsif (@prefetched) {
-	my @show = splice @prefetched, 0, LIMIT;
+	my @show = verify_urls splice @prefetched, 0, LIMIT;
 
 	system FOX, map{+"-new-tab", $_} @show;
 }
