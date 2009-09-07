@@ -3,7 +3,10 @@
 use warnings;
 use strict;
 
-use constant FOX => 'iceweasel';
+use constant {
+	FOX => 'iceweasel',
+	LIMIT => 50,
+};
 
 use LWP::Simple;
 use XML::XPath;
@@ -70,8 +73,9 @@ push @prefetched, @fetched_new;
 if (@ARGV == 1 && $ARGV[0] eq '-update') {
 }
 elsif (@prefetched) {
-	system FOX, map{+"-new-tab", $_} @prefetched;
-	@prefetched = ();
+	my @show = splice @prefetched, 0, LIMIT;
+
+	system FOX, map{+"-new-tab", $_} @show;
 }
 
 set_prefetch(@prefetched);
