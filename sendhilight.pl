@@ -24,12 +24,12 @@ sub send_email {
 	return if
 		$email eq "";
 
-	open my $smail, "|-", "/usr/sbin/sendmail", "-i -B 8BITMIME", $email
+	open my $smail, "|-", "/usr/sbin/sendmail", "-i", "-B", "8BITMIME", $email
 		or return;
 	
 	print $smail "Subject: $subjpref" . join(" ", sort keys %cache) . "\n";
 	print $smail "To: $email\n";
-	print $smail "Content-Type: text/plain; charset=\"UTF-8\"";
+	print $smail "Content-Type: text/plain; charset=\"UTF-8\"\n";
 	print $smail "Content-Transfer-Encoding: 8bit\n";
 	print $smail "\n";
 	print $smail "These hilights occured:\n\n";
