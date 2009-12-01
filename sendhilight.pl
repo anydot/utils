@@ -28,6 +28,7 @@ sub send_email {
 		or return;
 	
 	print $smail "Subject: $subjpref" . join(" ", sort keys %cache) . "\n";
+	print $smail "To: $email\n";
 	print $smail "\n";
 	print $smail "These hilights occured:\n\n";
 
