@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e -u
+PATH="$PATH:/usr/games"
 
 if test ! -e ~/.twic2scidrc ; then
 	echo "Can't find configfile ~/.twic2scidrc"
