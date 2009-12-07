@@ -3,7 +3,7 @@ use warnings;
 use Irssi;
 
 
-our $VERSION = "0.1";
+our $VERSION = "0.2";
 our %IRSSI = (
 	authors     => "Premysl Hruby",
 	contact     => "dfenze\@gmail.com",
@@ -34,10 +34,12 @@ sub send_email {
 	print $smail "\n";
 	print $smail "These hilights occured:\n\n";
 
-	foreach my $target (sort keys %cache) {
-		print $smail "$target:\n";
-		print $smail join("\n", @{$cache{$target}});
-		print $smail  "\n\n";
+	foreach my $byserver (values %cache) {
+		foreach my $target (sort keys %$byserver) {
+			print $smail "$target:\n";
+			print $smail join("\n", @{$byserver->{$target}});
+			print $smail  "\n\n";
+		}
 	}
 	
 	close $smail;
@@ -64,7 +66,7 @@ sub signal_printtext {
 	return if
 		$awayonly and $dest->{server} and !$dest->{server}->{usermode_away};
 	
-	push @{$cache{$dest->{target}}}, $stripped;
+	push @{$cache{$dest->{server}->{tag}}->{$dest->{target}}}, $stripped;
 
 	$timertag = Irssi::timeout_add_once(1000*$timeout, \&send_email, undef)
 		unless defined $timertag;
@@ -80,8 +82,24 @@ sub signal_setupchanged {
 		if $subjpref ne "";
 }
 
+sub signal_awaymodechanged {
+	my ($server) = @_;
+
+	return
+		if $server->{usermode_away};
+
+	delete $cache{$server->{tag}};
+
+	if (defined $timertag and ! keys %cache) {
+		Irssi::timeout_remove($timertag);
+		$timertag = undef;
+	}
+}
+
+
 Irssi::signal_add('print text', \&signal_printtext);
 Irssi::signal_add('setup changed', \&signal_setupchanged);
+Irssi::signal_add('away mode changed', \&signal_awaymodechanged);
 
 Irssi::settings_add_bool('misc', 'sendhilight_awayonly', $awayonly);
 Irssi::settings_add_int ('misc', 'sendhilight_timeout' , $timeout );
