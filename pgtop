@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+my $eth = shift || "eth0";
+my $filter = shift || "port 5432";
+my $delay = shift || 20;
+my $decay = shift || 0.9;
+my $cutoff = shift || 6;
+my $topmost = shift || 25;
+
+$cutoff = $decay ** $cutoff;
+
+my %runningqueries;
+my %queries; # query -> timsum, numq, sql (for easy usage via values of hash)
+
+open my $tshark, "-|", "/usr/sbin/tshark", "-n", "-i", $eth, "-f", $filter, "-R", "pgsql.type eq \"Q\" or pgsql.type eq \"C\"", qw{-T fields -E separator=/s -e frame.time_relative -e ip.src -e tcp.srcport -e ip.dst -e tcp.dstport -e  pgsql.type -e pgsql.query}
+	or die "Can't open tshark: $!";
+
+$SIG{ALRM} = \&sigalrm;
+
+sigalrm();
+
+while (<$tshark>) {
+	my ($time, $src, $srcp, $dst, $dstp, $type, $sql) = split / /, $_, 7;
+
+	if ($type eq "Q") {
+		$runningqueries{$dst, $dstp, $src, $srcp} = [$time, normalize($sql)];
+	}
+	else {
+		my $aref = delete $runningqueries{$src, $srcp, $dst, $dstp};
+
+		next unless
+			defined $aref;
+
+		my ($ptime, $psql) = @$aref;
+
+		my $querytime = $time - $ptime;
+
+		if (defined $queries{$psql}) {
+			$queries{$psql}->[0] += $querytime;
+			$queries{$psql}->[1]++;
+		}
+		else {
+			$queries{$psql} = [$querytime, 1, $psql];
+		}
+	}
+}
+
+
+exit 0;
+
+sub normalize {
+	my $sql = shift;
+
+	$sql =~ s/(['"]).*?\1/$1$1/g; # remove quoted text
+	$sql =~ s/\b\d+\b/#/g; # replace numbers
+	$sql =~ s/\\x0[da]//g; # remove escaped whitespace
+	$sql =~ s/(?:\s*btoi\(keywords ~\* ''\)\s*\+?\s*)+/ ##kwsearch## /g; # keyword search
+	$sql =~ s/\s+/ /g; # remove redundant whitespace
+	$sql =~ s/^ | $//g; # trim
+
+	return $sql;
+}
+
+sub sigalrm {
+	print "\x1b[H\x1b[2J";
+
+	my @qrs = sort {$a->[0] cmp $b->[0]} values %queries;
+	my $limit = $topmost;
+
+	foreach my $qry (@qrs) {
+		if ($limit) {
+			$limit--;
+			printf "[%1.6f\t%4.2f]\t%s\n",
+				$qry->[0]/$qry->[1], $qry->[1], $qry->[2];
+		}
+
+		$qry->[0] *= $decay;
+		$qry->[1] *= $decay;
+
+		if ($qry->[1] < $cutoff) {
+			delete $queries{$qry->[2]};
+		}
+	}
+	
+	alarm $delay;
+}
