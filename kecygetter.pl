@@ -8,17 +8,21 @@ use constant {
 	LIMIT => 50,
 };
 
-use LWP::Simple;
+use LWP::UserAgent;
 use XML::XPath;
 use List::Compare;
 
 my $cachedir = $ENV{'HOME'} . "/.cache";
 
-sub get_urls {
-	my $rss = get("http://kecy.roumen.cz/roumingRSS.php")
-		or die ("Can't get rss");
+my $ua = LWP::UserAgent->new( keep_alive => 1 );
 
-	my $set = XML::XPath->new(xml => $rss)->find('/rss/channel/item/title[text()!="Rouming"]/text()');
+sub get_urls {
+	my $rss = $ua->get("http://kecy.roumen.cz/roumingRSS.php");
+	
+	die ("Can't get rss")
+		unless $rss->is_success;
+
+	my $set = XML::XPath->new(xml => $rss->decoded_content)->find('/rss/channel/item/title[text()!="Rouming"]/text()');
 
 	return map {"http://kecy.roumen.cz/" . $_->string_value} $set->get_nodelist;
 }
@@ -58,7 +62,7 @@ sub set_cache {
 }
 
 sub verify_urls {
-	return grep {(head $_ || (''))[0] =~ /^image\//} @_;
+	return grep {$ua->head($_)->is_success} @_;
 }
 
 if (! -d $cachedir) {
@@ -80,7 +84,7 @@ elsif (@prefetched) {
 	my @show;
 
 	# try to show always LIMIT links (only if there are so many available, ofc)
-	while (@prefetched) {
+	while (@show < LIMIT && @prefetched) {
 		push @show, verify_urls splice @prefetched, 0, (LIMIT - @show);
 	}
 
