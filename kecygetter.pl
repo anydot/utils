@@ -58,7 +58,7 @@ sub set_cache {
 }
 
 sub verify_urls {
-	return grep {(head $_)[0] =~ /^image\//} @_;
+	return grep {(head $_ || (''))[0] =~ /^image\//} @_;
 }
 
 if (! -d $cachedir) {
@@ -77,7 +77,12 @@ push @prefetched, @fetched_new;
 if (@ARGV == 1 && $ARGV[0] eq '-update') {
 }
 elsif (@prefetched) {
-	my @show = verify_urls splice @prefetched, 0, LIMIT;
+	my @show;
+
+	# try to show always LIMIT links (only if there are so many available, ofc)
+	while (@prefetched) {
+		push @show, verify_urls splice @prefetched, 0, (LIMIT - @show);
+	}
 
 	system FOX, map{+"-new-tab", $_} @show;
 }
