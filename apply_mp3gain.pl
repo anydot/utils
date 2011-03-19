@@ -2,36 +2,58 @@
 use warnings;
 use strict;
 
-sub rename_dir {
-	my $DIRNAME = shift;
-	my @params  = qw{mp3gain -a -k};
+use Cwd qw/fast_abs_path/;
+use DB_File;
 
-	opendir(DIR, $DIRNAME) || 
-		(print STDERR "cannot open $DIRNAME: $!" and return -1);
+my $progs = {
+	mp3 => [qw/mp3gain -a -k -q/],
+	flac => [qw/metaflac --add-replay-gain/],
+	ogg => [qw/vorbisgain -a/],
+};
 
-	foreach my $filename (grep !/^\.\.?$/, readdir(DIR)) {
-		my $actual = "$DIRNAME/$filename";
+die "Sorry, HOME env not found :-/"
+	unless $ENV{HOME};
 
-		#if is dir call rename_dir
+my $db_t = tie my %db, 'DB_File', $ENV{HOME}.'/.replaygain.db'
+	or die "Can't open db: $!";
+
+die "Usage: $0 <dir> [<dir> ...]"
+	unless @ARGV;
+
+my @dirs = @ARGV;
+
+while (my $dirname = shift @dirs) {
+	my $albums;
+
+	printf "Examining %s\n",
+		$dirname;
+
+	opendir my $dir, $dirname
+		or die "Can't open $dirname: $!";
+
+	foreach my $filename (grep !/^\.\.?$/, readdir($dir)) {
+		my $actual = "$dirname/$filename";
+
 		if (-d $actual) {
-			rename_dir($actual);
+			push @dirs, $actual;
 		}
+		elsif (-f $actual) {
+			my ($extension) = $actual =~ /\.(.*?)$/;
 
-		if (-f "$actual" and $actual =~ /[.](mp3|ogg)$/i) {
-			push @params, "$actual";
+			push @{$albums->{$extension}}, $actual
+				if $progs->{$extension};
+
 		}
-		close(DIR);
 	}
 
-	print "% mp3gain on $DIRNAME:\n";
-	print STDERR "% error\n" if system @params;
-}
+	foreach (keys %$albums) {
+		my @files = map {fast_abs_path $_} @{$albums->{$_}};
 
-if ($#ARGV < 0) { 
-	print STDERR "usage:\n\tapplymp3gain.pl <dir> [<dir> ...]\n\n";
-	exit 0;
-}
+		if (grep {! exists $db{$_}} @files) {
+			system(@{$progs->{$_}}, @files) == 0
+				or die "Error $!";
 
-foreach my $dir (@ARGV) {
-	rename_dir($dir);
+			@db{@files} = ();
+		}
+	}
 }
