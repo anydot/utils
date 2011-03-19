@@ -31,7 +31,7 @@ sub cb {
 	print "$file ";
 
 	my $mtime = (stat($realfile))[9];
-	my $eatime = $db{$realfile};
+	my ($eatime) = unpack "l", $db{$realfile} || "";
 
 	if (defined $eatime && $mtime == $eatime) {
 		print "-\n";
@@ -79,7 +79,7 @@ sub cb {
 	}
 	
 	$mtime = (stat($realfile))[9];
-	$db{$realfile} = $mtime;
+	$db{$realfile} = pack "l", $mtime;
 
 	$db_t->sync
 		unless $num++ % 20;
