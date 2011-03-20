@@ -8,7 +8,7 @@ use DB_File;
 my $progs = {
 	mp3 => [qw/mp3gain -a -k -q/],
 	flac => [qw/metaflac --add-replay-gain/],
-	ogg => [qw/vorbisgain -a/],
+	ogg => [qw/vorbisgain -a -q/],
 };
 
 die "Sorry, HOME env not found :-/"
