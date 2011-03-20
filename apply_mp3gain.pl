@@ -50,10 +50,14 @@ while (my $dirname = shift @dirs) {
 		my @files = map {fast_abs_path $_} @{$albums->{$_}};
 
 		if (grep {! exists $db{$_}} @files) {
-			system(@{$progs->{$_}}, @files) == 0
-				or die "Error $!";
+			my @params = (@{$progs->{$_}}, @files);
 
-			@db{@files} = ();
+			if (system(@params)) {
+				warn "Error while running: @params";
+			}
+			else {
+				@db{@files} = ();
+			}
 		}
 	}
 }
