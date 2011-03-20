@@ -42,21 +42,22 @@ while (my $dirname = shift @dirs) {
 
 			push @{$albums->{$extension}}, $actual
 				if $progs->{$extension};
-
 		}
 	}
 
 	foreach (keys %$albums) {
-		my @files = map {fast_abs_path $_} @{$albums->{$_}};
+		my @files = map {fast_abs_path $_} reverse sort @{$albums->{$_}};
 
 		if (grep {! exists $db{$_}} @files) {
 			my @params = (@{$progs->{$_}}, @files);
 
 			if (system(@params)) {
 				warn "Error while running: @params";
+				exit;
 			}
 			else {
 				@db{@files} = ();
+				$db_t->sync;
 			}
 		}
 	}
