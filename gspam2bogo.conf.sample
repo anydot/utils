@@ -1,8 +1,0 @@
-## if you start line with '#' it will be treated as a comment
-
-# username and password
-username mymail
-password mypassword
-
-# if 'delete' is defined, the spam messages will be deleted after learning
-delete
